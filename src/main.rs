@@ -62,9 +62,11 @@ fn project_handler(path: &str,name: &str) -> std::io::Result<()> {
     }
 
     let input = inputs.iter().map(|val| {val.as_str()}).collect();
-    let output = format!("{}/{}.mp4", path, name);
-    println!("ffmpeg {:?} to {}", input, output);
-    do_ffmpeg(input, &output)?;
+    let target_name = format!("{}.mp4", name);
+    let output_tmp = format!("{}/output.mp4.tmp", path);
+    println!("ffmpeg {:?} to {}", input, output_tmp);
+    do_ffmpeg(input, &output_tmp)?;
+    std::fs::copy(output_tmp, &format!("./{}",target_name))?;
     Ok(())
 }
 
@@ -79,6 +81,7 @@ fn do_ffmpeg(inputs: Vec<&str>, output: &str) -> std::io::Result<()> {
     let child = Command::new("ffmpeg")
         .args(input_args)
         .args(["-codec", "copy"])
+        .args(["-f", "mp4"])
         .arg(output)
         .stdout(Stdio::piped())
         .spawn()
@@ -86,7 +89,7 @@ fn do_ffmpeg(inputs: Vec<&str>, output: &str) -> std::io::Result<()> {
 
     // Note that `echo_child` is moved here, but we won't be needing
     // `echo_child` anymore
-    let mut child_out = child.stdout.expect("Failed to open echo stdout");
+    let mut child_out = child.stdout.expect("Failed to open ffmpeg stdout");
 
     loop {
         let mut buffer = String::new();
